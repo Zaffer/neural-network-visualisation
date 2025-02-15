@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>boolean machine learning</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        background-color: #222;
+        color: #000;
+      }
+
+      a {
+        color: #f00;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="container"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three/build/three.webgpu.min.js",
+          "three/webgpu": "https://unpkg.com/three/build/three.webgpu.min.js",
+          "three/tsl": "https://unpkg.com/three/build/three.tsl.min.js",
+          "three/addons/": "https://unpkg.com/three/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // Import three.js core and examples modules
+      import * as THREE from "three";
+      import { WebGPURenderer } from "three/webgpu";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    
+
+      // --- Scene, Camera, and Renderer Setup ---
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 0, 50);
+
+      // Initialize WebGPURenderer (ensure your browser supports WebGPU)
+      const renderer = new WebGPURenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.update();
+
+      // --- Define MLP Architecture ---
+      // Example: 3 neurons in the input layer, 4 in the hidden, and 2 in the output.
+      const layers = [3, 4, 2];
+      const neuronPositions = [];
+
+      // Neuron visual parameters
+      const neuronRadius = 0.5;
+      const neuronGeometry = new THREE.SphereGeometry(neuronRadius, 16, 16);
+      const neuronMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
+      // Layout parameters
+      const layerSpacing = 20;
+      const neuronSpacing = 5;
+
+      // Create neuron meshes and store their positions
+      for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+        const neuronsInLayer = [];
+        const numNeurons = layers[layerIndex];
+        // Center the layer along the x-axis
+        const x = (layerIndex - (layers.length - 1) / 2) * layerSpacing;
+        // Center neurons vertically within the layer
+        const totalHeight = (numNeurons - 1) * neuronSpacing;
+
+        for (let neuronIndex = 0; neuronIndex < numNeurons; neuronIndex++) {
+          const y = neuronIndex * neuronSpacing - totalHeight / 2;
+          const position = new THREE.Vector3(x, y, 0);
+          neuronsInLayer.push(position);
+
+          // Create and position the neuron mesh
+          const neuronMesh = new THREE.Mesh(neuronGeometry, neuronMaterial);
+          neuronMesh.position.copy(position);
+          scene.add(neuronMesh);
+        }
+        neuronPositions.push(neuronsInLayer);
+      }
+
+      // --- Create Connections Between Neurons ---
+      // Connect every neuron in one layer to every neuron in the next layer
+      const connectionMaterial = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+      });
+      for (let layerIndex = 0; layerIndex < layers.length - 1; layerIndex++) {
+        const currentLayer = neuronPositions[layerIndex];
+        const nextLayer = neuronPositions[layerIndex + 1];
+        currentLayer.forEach((startPos) => {
+          nextLayer.forEach((endPos) => {
+            const points = [startPos, endPos];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, connectionMaterial);
+            scene.add(line);
+          });
+        });
+      }
+
+      // --- Animation Loop ---
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // --- Handle Window Resize ---
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+
+    </script>
+  </body>
+</html>
